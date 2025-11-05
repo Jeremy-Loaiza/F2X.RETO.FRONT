@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es" ng-app="RecaudosApp">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>F2X Reto - Sistema de Recaudos</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- AngularJS -->
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+  <!-- Moment.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+  <!-- jsPDF y plugin AutoTable -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
+  <!-- Archivo Angular -->
+  <script src="js/app.js"></script>
+</head>
+
+<body class="bg-gray-100 font-sans p-6" ng-controller="RecaudoController">
+  <div class="max-w-6xl mx-auto bg-white rounded-2xl shadow-xl p-8 space-y-8">
+
+    <!-- ENCABEZADO -->
+    <header class="border-b pb-4 mb-6">
+      <h1 class="text-3xl font-bold text-indigo-700">📊 Sistema de Recaudos F2X</h1>
+      <p class="text-gray-600">
+        Conecta con el backend (.NET) para importar, consultar y generar reportes de recaudos vehiculares.
+      </p>
+    </header>
+
+    <!-- MENSAJES -->
+    <div ng-if="loading" class="p-4 bg-yellow-100 text-yellow-800 rounded-lg shadow text-center">
+      <svg class="animate-spin -ml-1 mr-3 h-5 w-5 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+      </svg>
+      {{ message }}
+    </div>
+
+    <div ng-if="error" class="p-4 bg-red-100 text-red-800 rounded-lg shadow text-center">
+      ⚠️ {{ error }}
+    </div>
+
+    <!-- 1️⃣ IMPORTAR DATOS -->
+    <section class="p-6 bg-indigo-50 rounded-xl shadow-inner space-y-4">
+      <h2 class="text-xl font-semibold text-indigo-800">Importar Datos de la API Externa</h2>
+      <p class="text-gray-600">Selecciona un rango de fechas para realizar la importación:</p>
+
+      <div class="flex flex-col sm:flex-row gap-4 items-center">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Desde</label>
+          <input type="date" ng-model="fechaInicio" class="p-2 border border-gray-300 rounded-lg shadow-sm">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Hasta</label>
+          <input type="date" ng-model="fechaFin" class="p-2 border border-gray-300 rounded-lg shadow-sm">
+        </div>
+      </div>
+
+      <button ng-click="importarDatos()" 
+              ng-disabled="loading || !fechaInicio || !fechaFin"
+              class="mt-4 w-full sm:w-auto px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 disabled:bg-indigo-400">
+        {{ loading ? 'Importando...' : 'POST /api/Import/fetch-range' }}
+      </button>
+
+      <div ng-if="resultado" class="mt-4 p-4 bg-green-100 text-green-800 rounded-lg shadow">
+        ✅ {{ resultado }}
+      </div>
+    </section>
+
+    <!-- 2️⃣ CONTEO DE VEHÍCULOS -->
+    <section class="p-6 bg-blue-50 rounded-xl shadow-inner space-y-4">
+      <h2 class="text-xl font-semibold text-blue-800">Conteo Diario de Vehículos</h2>
+
+      <div class="flex flex-col sm:flex-row gap-4 items-center">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Fecha</label>
+          <input type="date" ng-model="conteoDate" class="p-2 border border-gray-300 rounded-lg shadow-sm">
+        </div>
+        <button ng-click="getConteoVehiculos()" 
+                ng-disabled="loading || !conteoDate"
+                class="mt-4 sm:mt-6 px-6 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 disabled:bg-blue-400">
+          {{ loading ? 'Cargando...' : 'GET /api/Recaudo/conteo/{fecha}' }}
+        </button>
+      </div>
+
+      <div ng-if="conteoData.length > 0" class="overflow-x-auto">
+        <table class="min-w-full bg-white border border-gray-200 rounded-xl mt-4">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="py-2 px-4 border-b text-left">Estación</th>
+              <th class="py-2 px-4 border-b text-left">Hora</th>
+              <th class="py-2 px-4 border-b text-left">Total Vehículos</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="item in conteoData">
+              <td class="py-2 px-4 border-b">{{ item.estacionNombre }}</td>
+              <td class="py-2 px-4 border-b">{{ item.hora }}:00</td>
+              <td class="py-2 px-4 border-b font-semibold">{{ item.totalVehiculos }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p ng-if="!conteoData.length && !loading" class="text-gray-500">Selecciona una fecha para consultar el conteo.</p>
+    </section>
+
+    <!-- 3️⃣ REPORTE MENSUAL -->
+    <section class="p-6 bg-green-50 rounded-xl shadow-inner space-y-4">
+      <h2 class="text-xl font-semibold text-green-800">Reporte Mensual por Estación y Fecha</h2>
+
+      <div class="flex flex-col sm:flex-row gap-4">
+        <button ng-click="getReporteMensual()" 
+                ng-disabled="loading"
+                class="mt-2 px-6 py-3 bg-green-600 text-white font-medium rounded-lg shadow-md hover:bg-green-700 transition duration-150 disabled:bg-green-400">
+          {{ loading ? 'Cargando...' : 'GET /api/Recaudo/reporte' }}
+        </button>
+
+        <button ng-click="exportarPDF()" 
+                ng-disabled="reporteData.length === 0"
+                class="mt-2 px-6 py-3 bg-red-600 text-white font-medium rounded-lg shadow-md hover:bg-red-700 transition duration-150 disabled:bg-red-300">
+          📄 Exportar a PDF
+        </button>
+      </div>
+
+      <div ng-if="reporteData.length > 0" class="overflow-x-auto">
+        <table class="min-w-full bg-white border border-gray-200 rounded-xl mt-4">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="py-2 px-4 border-b text-left">Año</th>
+              <th class="py-2 px-4 border-b text-left">Mes</th>
+              <th class="py-2 px-4 border-b text-left">Estación</th>
+              <th class="py-2 px-4 border-b text-left">Total Cantidad</th>
+              <th class="py-2 px-4 border-b text-left">Total Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="item in reporteData">
+              <td class="py-2 px-4 border-b">{{ item.anio }}</td>
+              <td class="py-2 px-4 border-b">{{ getMonthName(item.mes) }}</td>
+              <td class="py-2 px-4 border-b">{{ item.estacionNombre }}</td>
+              <td class="py-2 px-4 border-b">{{ item.totalCantidad }}</td>
+              <td class="py-2 px-4 border-b font-semibold">${{ item.totalValor | number:2 }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p ng-if="!reporteData.length && !loading" class="text-gray-500">Haz clic para generar el reporte mensual.</p>
+    </section>
+
+  </div>
+</body>
+</html>
