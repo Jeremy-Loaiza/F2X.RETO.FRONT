@@ -7,88 +7,137 @@
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome -->
+  <script src="https://kit.fontawesome.com/a2e0e6d3f3.js" crossorigin="anonymous"></script>
   <!-- AngularJS -->
   <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
   <!-- Moment.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-  <!-- jsPDF y plugin AutoTable -->
+  <!-- jsPDF + AutoTable -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
   <!-- Archivo Angular -->
   <script src="js/app.js"></script>
+
+  <style>
+    /* 🔹 Animación global de alertas */
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(-10px); }
+      10%, 90% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-10px); }
+    }
+    .animate-fade-in-out {
+      animation: fadeInOut 4s ease-in-out forwards;
+    }
+
+    /* 🔹 Overlay global de carga */
+    .overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(255, 255, 255, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      backdrop-filter: blur(3px);
+    }
+  </style>
 </head>
 
-<body class="bg-gray-100 font-sans p-6" ng-controller="RecaudoController">
-  <div class="max-w-6xl mx-auto bg-white rounded-2xl shadow-xl p-8 space-y-8">
+<body class="bg-gray-100 font-sans" ng-controller="RecaudoController">
 
-    <!-- ENCABEZADO -->
-    <header class="border-b pb-4 mb-6">
-      <h1 class="text-3xl font-bold text-indigo-700">📊 Sistema de Recaudos F2X</h1>
-      <p class="text-gray-600">
-        Conecta con el backend (.NET) para importar, consultar y generar reportes de recaudos vehiculares.
-      </p>
-    </header>
+  <!-- 🔔 ALERTAS GLOBALES -->
+  <div ng-if="alerta && alerta.visible"
+       ng-class="{
+         'bg-green-500 text-white': alerta.tipo === 'success',
+         'bg-red-500 text-white': alerta.tipo === 'error',
+         'bg-blue-500 text-white': alerta.tipo === 'info'
+       }"
+       class="fixed top-6 right-6 px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-fade-in-out z-50">
+    <i ng-if="alerta.tipo==='success'" class="fas fa-check-circle"></i>
+    <i ng-if="alerta.tipo==='error'" class="fas fa-exclamation-triangle"></i>
+    <i ng-if="alerta.tipo==='info'" class="fas fa-info-circle"></i>
+    <span class="text-sm sm:text-base font-medium">{{ alerta.texto }}</span>
+  </div>
 
-    <!-- MENSAJES -->
-    <div ng-if="loading" class="p-4 bg-yellow-100 text-yellow-800 rounded-lg shadow text-center">
-      <svg class="animate-spin -ml-1 mr-3 h-5 w-5 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-      </svg>
-      {{ message }}
+  <!-- 🌀 OVERLAY DE CARGA -->
+  <div ng-if="loading" class="overlay">
+    <div class="text-center">
+      <i class="fas fa-circle-notch fa-spin text-indigo-600 text-4xl mb-2"></i>
+      <p class="text-gray-700 font-medium text-lg">{{ message || 'Procesando...' }}</p>
     </div>
+  </div>
 
-    <div ng-if="error" class="p-4 bg-red-100 text-red-800 rounded-lg shadow text-center">
-      ⚠️ {{ error }}
+  <!-- 🧭 NAVBAR -->
+  <nav class="bg-indigo-700 text-white px-6 py-4 shadow-md sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-0">
+      <h1 class="text-xl sm:text-2xl font-bold tracking-wide">🚗 Sistema de Recaudos F2X</h1>
+      <div class="flex gap-4 text-sm sm:text-base">
+        <a href="#importar" class="hover:text-yellow-300 transition">Importar</a>
+        <a href="#conteo" class="hover:text-yellow-300 transition">Conteo</a>
+        <a href="#reporte" class="hover:text-yellow-300 transition">Reporte</a>
+      </div>
     </div>
+  </nav>
+
+  <!-- 📦 CONTENEDOR PRINCIPAL -->
+  <div class="max-w-6xl mx-auto p-6 space-y-10">
 
     <!-- 1️⃣ IMPORTAR DATOS -->
-    <section class="p-6 bg-indigo-50 rounded-xl shadow-inner space-y-4">
-      <h2 class="text-xl font-semibold text-indigo-800">Importar Datos de la API Externa</h2>
+    <section id="importar" class="bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 rounded-2xl shadow-lg p-8 space-y-4">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="bg-indigo-600 text-white p-3 rounded-full shadow">
+          <i class="fas fa-cloud-download-alt"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-indigo-700">Importar Datos desde la API Externa</h2>
+      </div>
+
       <p class="text-gray-600">Selecciona un rango de fechas para realizar la importación:</p>
 
-      <div class="flex flex-col sm:flex-row gap-4 items-center">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700">Desde</label>
-          <input type="date" ng-model="fechaInicio" class="p-2 border border-gray-300 rounded-lg shadow-sm">
+          <input type="date" ng-model="fechaInicio" class="w-full p-2 border border-gray-300 rounded-lg shadow-sm">
         </div>
-
         <div>
           <label class="block text-sm font-medium text-gray-700">Hasta</label>
-          <input type="date" ng-model="fechaFin" class="p-2 border border-gray-300 rounded-lg shadow-sm">
+          <input type="date" ng-model="fechaFin" class="w-full p-2 border border-gray-300 rounded-lg shadow-sm">
         </div>
       </div>
 
       <button ng-click="importarDatos()" 
               ng-disabled="loading || !fechaInicio || !fechaFin"
-              class="mt-4 w-full sm:w-auto px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 disabled:bg-indigo-400">
-        {{ loading ? 'Importando...' : 'POST /api/Import/fetch-range' }}
+              class="mt-4 w-full sm:w-auto px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg shadow-md hover:bg-indigo-700 transition disabled:bg-indigo-400">
+        {{ loading ? 'Importando...' : '📥 Importar Datos' }}
       </button>
-
-      <div ng-if="resultado" class="mt-4 p-4 bg-green-100 text-green-800 rounded-lg shadow">
-        ✅ {{ resultado }}
-      </div>
     </section>
 
     <!-- 2️⃣ CONTEO DE VEHÍCULOS -->
-    <section class="p-6 bg-blue-50 rounded-xl shadow-inner space-y-4">
-      <h2 class="text-xl font-semibold text-blue-800">Conteo Diario de Vehículos</h2>
+    <section id="conteo" class="bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-2xl shadow-lg p-8 space-y-4">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="bg-blue-600 text-white p-3 rounded-full shadow">
+          <i class="fas fa-car-side"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-blue-700">Conteo Diario de Vehículos</h2>
+      </div>
 
-      <div class="flex flex-col sm:flex-row gap-4 items-center">
-        <div>
+      <div class="flex flex-col sm:flex-row gap-4 items-end">
+        <div class="w-full sm:w-auto">
           <label class="block text-sm font-medium text-gray-700">Fecha</label>
-          <input type="date" ng-model="conteoDate" class="p-2 border border-gray-300 rounded-lg shadow-sm">
+          <input type="date" ng-model="conteoDate" class="w-full p-2 border border-gray-300 rounded-lg shadow-sm">
         </div>
         <button ng-click="getConteoVehiculos()" 
                 ng-disabled="loading || !conteoDate"
-                class="mt-4 sm:mt-6 px-6 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 disabled:bg-blue-400">
-          {{ loading ? 'Cargando...' : 'GET /api/Recaudo/conteo/{fecha}' }}
+                class="px-6 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 disabled:bg-blue-400">
+          {{ loading ? 'Cargando...' : '🚘 Consultar Conteo' }}
         </button>
       </div>
 
-      <div ng-if="conteoData.length > 0" class="overflow-x-auto">
-        <table class="min-w-full bg-white border border-gray-200 rounded-xl mt-4">
-          <thead class="bg-gray-100">
+      <!-- Tabla -->
+      <div ng-if="conteoData.length > 0" class="overflow-x-auto mt-4">
+        <table class="min-w-full bg-white border border-gray-200 rounded-xl">
+          <thead class="bg-gray-100 text-gray-700 uppercase text-sm font-semibold">
             <tr>
               <th class="py-2 px-4 border-b text-left">Estación</th>
               <th class="py-2 px-4 border-b text-left">Hora</th>
@@ -96,7 +145,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr ng-repeat="item in conteoData">
+            <tr ng-repeat="item in conteoData" class="hover:bg-blue-50 transition">
               <td class="py-2 px-4 border-b">{{ item.estacionNombre }}</td>
               <td class="py-2 px-4 border-b">{{ item.hora }}:00</td>
               <td class="py-2 px-4 border-b font-semibold">{{ item.totalVehiculos }}</td>
@@ -108,26 +157,31 @@
     </section>
 
     <!-- 3️⃣ REPORTE MENSUAL -->
-    <section class="p-6 bg-green-50 rounded-xl shadow-inner space-y-4">
-      <h2 class="text-xl font-semibold text-green-800">Reporte Mensual por Estación y Fecha</h2>
+    <section id="reporte" class="bg-gradient-to-br from-green-50 to-white border border-green-100 rounded-2xl shadow-lg p-8 space-y-4">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="bg-green-600 text-white p-3 rounded-full shadow">
+          <i class="fas fa-chart-line"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-green-700">Reporte Mensual por Estación y Fecha</h2>
+      </div>
 
       <div class="flex flex-col sm:flex-row gap-4">
         <button ng-click="getReporteMensual()" 
                 ng-disabled="loading"
-                class="mt-2 px-6 py-3 bg-green-600 text-white font-medium rounded-lg shadow-md hover:bg-green-700 transition duration-150 disabled:bg-green-400">
-          {{ loading ? 'Cargando...' : 'GET /api/Recaudo/reporte' }}
+                class="px-6 py-3 bg-green-600 text-white font-medium rounded-lg shadow-md hover:bg-green-700 transition disabled:bg-green-400">
+          {{ loading ? 'Cargando...' : '📊 Generar Reporte' }}
         </button>
 
         <button ng-click="exportarPDF()" 
                 ng-disabled="reporteData.length === 0"
-                class="mt-2 px-6 py-3 bg-red-600 text-white font-medium rounded-lg shadow-md hover:bg-red-700 transition duration-150 disabled:bg-red-300">
-          📄 Exportar a PDF
+                class="px-6 py-3 bg-red-600 text-white font-medium rounded-lg shadow-md hover:bg-red-700 transition disabled:bg-red-300">
+          📄 Exportar PDF
         </button>
       </div>
 
-      <div ng-if="reporteData.length > 0" class="overflow-x-auto">
-        <table class="min-w-full bg-white border border-gray-200 rounded-xl mt-4">
-          <thead class="bg-gray-100">
+      <div ng-if="reporteData.length > 0" class="overflow-x-auto mt-4">
+        <table class="min-w-full bg-white border border-gray-200 rounded-xl">
+          <thead class="bg-gray-100 text-gray-700 uppercase text-sm font-semibold">
             <tr>
               <th class="py-2 px-4 border-b text-left">Año</th>
               <th class="py-2 px-4 border-b text-left">Mes</th>
@@ -137,7 +191,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr ng-repeat="item in reporteData">
+            <tr ng-repeat="item in reporteData" class="hover:bg-green-50 transition">
               <td class="py-2 px-4 border-b">{{ item.anio }}</td>
               <td class="py-2 px-4 border-b">{{ getMonthName(item.mes) }}</td>
               <td class="py-2 px-4 border-b">{{ item.estacionNombre }}</td>
