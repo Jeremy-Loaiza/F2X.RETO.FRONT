@@ -16,38 +16,43 @@
   <!-- jsPDF + AutoTable -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
+
   <!-- Archivo Angular -->
   <script src="js/app.js"></script>
 
   <style>
-    /* 🔹 Animación global de alertas */
     @keyframes fadeInOut {
       0% { opacity: 0; transform: translateY(-10px); }
       10%, 90% { opacity: 1; transform: translateY(0); }
       100% { opacity: 0; transform: translateY(-10px); }
     }
-    .animate-fade-in-out {
-      animation: fadeInOut 4s ease-in-out forwards;
-    }
+    .animate-fade-in-out { animation: fadeInOut 4s ease-in-out forwards; }
 
-    /* 🔹 Overlay global de carga */
     .overlay {
-      position: fixed;
-      top: 0; left: 0;
+      position: fixed; top: 0; left: 0;
       width: 100%; height: 100%;
       background-color: rgba(255, 255, 255, 0.7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
-      backdrop-filter: blur(3px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100; backdrop-filter: blur(3px);
     }
+
+    table.matriz th, table.matriz td {
+      border: 1px solid #ccc;
+      text-align: center;
+      padding: 6px 10px;
+      font-size: 0.9rem;
+    }
+    table.matriz th { background-color: #f9fafb; font-weight: bold; }
+    table.matriz tfoot td { background-color: #f1f5f9; font-weight: bold; }
+
+    /* Mejora UX */
+    .shadow-soft { box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
   </style>
 </head>
 
 <body class="bg-gray-100 font-sans" ng-controller="RecaudoController">
 
-  <!-- 🔔 ALERTAS GLOBALES -->
+  <!-- ALERTAS -->
   <div ng-if="alerta && alerta.visible"
        ng-class="{
          'bg-green-500 text-white': alerta.tipo === 'success',
@@ -61,7 +66,7 @@
     <span class="text-sm sm:text-base font-medium">{{ alerta.texto }}</span>
   </div>
 
-  <!-- 🌀 OVERLAY DE CARGA -->
+  <!-- CARGANDO -->
   <div ng-if="loading" class="overlay">
     <div class="text-center">
       <i class="fas fa-circle-notch fa-spin text-indigo-600 text-4xl mb-2"></i>
@@ -69,7 +74,7 @@
     </div>
   </div>
 
-  <!-- 🧭 NAVBAR -->
+  <!-- NAVBAR -->
   <nav class="bg-indigo-700 text-white px-6 py-4 shadow-md sticky top-0 z-40">
     <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-0">
       <h1 class="text-xl sm:text-2xl font-bold tracking-wide">🚗 Sistema de Recaudos F2X</h1>
@@ -81,11 +86,22 @@
     </div>
   </nav>
 
-  <!-- 📦 CONTENEDOR PRINCIPAL -->
+  <!-- 🗓️ RANGO ACTIVO -->
+  <div ng-if="ultimaImportacion.desde && ultimaImportacion.hasta"
+       class="bg-blue-100 border border-blue-300 text-blue-800 text-center py-2 shadow-sm">
+    <p class="text-sm font-medium">
+      📅 Mostrando datos importados del 
+      <strong>{{ ultimaImportacion.desde }}</strong> 
+      al 
+      <strong>{{ ultimaImportacion.hasta }}</strong>
+    </p>
+  </div>
+
+  <!-- CONTENEDOR PRINCIPAL -->
   <div class="max-w-6xl mx-auto p-6 space-y-10">
 
     <!-- 1️⃣ IMPORTAR DATOS -->
-    <section id="importar" class="bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 rounded-2xl shadow-lg p-8 space-y-4">
+    <section id="importar" class="bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 rounded-2xl shadow-soft p-8 space-y-4">
       <div class="flex items-center gap-3 mb-4">
         <div class="bg-indigo-600 text-white p-3 rounded-full shadow">
           <i class="fas fa-cloud-download-alt"></i>
@@ -98,11 +114,11 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700">Desde</label>
-          <input type="date" ng-model="fechaInicio" class="w-full p-2 border border-gray-300 rounded-lg shadow-sm">
+          <input type="date" ng-model="fechaInicio" class="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500">
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Hasta</label>
-          <input type="date" ng-model="fechaFin" class="w-full p-2 border border-gray-300 rounded-lg shadow-sm">
+          <input type="date" ng-model="fechaFin" class="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500">
         </div>
       </div>
 
@@ -113,8 +129,8 @@
       </button>
     </section>
 
-    <!-- 2️⃣ CONTEO DE VEHÍCULOS -->
-    <section id="conteo" class="bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-2xl shadow-lg p-8 space-y-4">
+    <!-- 2️⃣ CONTEO DIARIO -->
+    <section id="conteo" class="bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-2xl shadow-soft p-8 space-y-4">
       <div class="flex items-center gap-3 mb-4">
         <div class="bg-blue-600 text-white p-3 rounded-full shadow">
           <i class="fas fa-car-side"></i>
@@ -122,20 +138,66 @@
         <h2 class="text-2xl font-bold text-blue-700">Conteo Diario de Vehículos</h2>
       </div>
 
-      <div class="flex flex-col sm:flex-row gap-4 items-end">
-        <div class="w-full sm:w-auto">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <div>
           <label class="block text-sm font-medium text-gray-700">Fecha</label>
-          <input type="date" ng-model="conteoDate" class="w-full p-2 border border-gray-300 rounded-lg shadow-sm">
+          <input type="date" ng-model="conteoDate"
+                 ng-change="getConteoVehiculos(1)"
+                 class="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500">
         </div>
-        <button ng-click="getConteoVehiculos()" 
-                ng-disabled="loading || !conteoDate"
-                class="px-6 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 disabled:bg-blue-400">
-          {{ loading ? 'Cargando...' : '🚘 Consultar Conteo' }}
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Estación</label>
+          <select ng-model="filtroEstacion"
+                  ng-change="getConteoVehiculos(1)"
+                  class="w-full p-2 border border-gray-300 rounded-lg shadow-sm">
+            <option value="">Todas</option>
+            <option ng-repeat="est in estaciones" value="{{ est }}">{{ est }}</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Hora</label>
+          <select ng-model="filtroHora"
+                  ng-change="getConteoVehiculos(1)"
+                  class="w-full p-2 border border-gray-300 rounded-lg shadow-sm">
+            <option value="">Todas</option>
+            <option ng-repeat="h in horas" value="{{ h }}">{{ h }}:00</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Filas por página</label>
+          <select ng-model="pageSize"
+                  ng-change="getConteoVehiculos(1)"
+                  class="w-full p-2 border border-gray-300 rounded-lg shadow-sm">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex gap-4 mt-4">
+        <button ng-click="getConteoVehiculos(1)"
+                class="px-6 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700">
+          🚘 Consultar
+        </button>
+
+        <button ng-click="limpiarFiltros()"
+                class="px-6 py-3 bg-gray-300 text-gray-800 rounded-lg shadow hover:bg-gray-400">
+          🧹 Limpiar Filtros
         </button>
       </div>
 
-      <!-- Tabla -->
-      <div ng-if="conteoData.length > 0" class="overflow-x-auto mt-4">
+      <!-- Estado vacío mejorado -->
+      <div ng-if="conteoData.length === 0" class="text-center text-gray-500 mt-6">
+        <i class="fas fa-info-circle text-2xl mb-2"></i>
+        <p>No hay datos para los filtros seleccionados.</p>
+      </div>
+
+      <div ng-if="conteoData.length > 0" class="overflow-x-auto mt-6">
         <table class="min-w-full bg-white border border-gray-200 rounded-xl">
           <thead class="bg-gray-100 text-gray-700 uppercase text-sm font-semibold">
             <tr>
@@ -153,57 +215,76 @@
           </tbody>
         </table>
       </div>
-      <p ng-if="!conteoData.length && !loading" class="text-gray-500">Selecciona una fecha para consultar el conteo.</p>
+
+      <div ng-if="totalPages > 1" class="flex justify-center items-center gap-4 mt-4">
+        <button ng-click="prevPage()" ng-disabled="currentPage === 1"
+                class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:opacity-50">⬅️ Anterior</button>
+
+        <span class="font-medium text-gray-700">Página {{ currentPage }} de {{ totalPages }}</span>
+
+        <button ng-click="nextPage()" ng-disabled="currentPage === totalPages"
+                class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:opacity-50">Siguiente ➡️</button>
+      </div>
     </section>
 
     <!-- 3️⃣ REPORTE MENSUAL -->
-    <section id="reporte" class="bg-gradient-to-br from-green-50 to-white border border-green-100 rounded-2xl shadow-lg p-8 space-y-4">
+    <section id="reporte" class="bg-gradient-to-br from-green-50 to-white border border-green-100 rounded-2xl shadow-soft p-8 space-y-4">
       <div class="flex items-center gap-3 mb-4">
         <div class="bg-green-600 text-white p-3 rounded-full shadow">
-          <i class="fas fa-chart-line"></i>
+          <i class="fas fa-table"></i>
         </div>
-        <h2 class="text-2xl font-bold text-green-700">Reporte Mensual por Estación y Fecha</h2>
+        <h2 class="text-2xl font-bold text-green-700">Reporte Mensual</h2>
       </div>
 
-      <div class="flex flex-col sm:flex-row gap-4">
-        <button ng-click="getReporteMensual()" 
-                ng-disabled="loading"
-                class="px-6 py-3 bg-green-600 text-white font-medium rounded-lg shadow-md hover:bg-green-700 transition disabled:bg-green-400">
-          {{ loading ? 'Cargando...' : '📊 Generar Reporte' }}
-        </button>
+      <button ng-click="getReporteDiario()" 
+              ng-disabled="loading"
+              class="px-6 py-3 bg-green-600 text-white font-medium rounded-lg shadow-md hover:bg-green-700 transition disabled:bg-green-400">
+        {{ loading ? 'Generando...' : '📊 Generar Reporte Mensual' }}
+      </button>
 
-        <button ng-click="exportarPDF()" 
-                ng-disabled="reporteData.length === 0"
-                class="px-6 py-3 bg-red-600 text-white font-medium rounded-lg shadow-md hover:bg-red-700 transition disabled:bg-red-300">
-          📄 Exportar PDF
-        </button>
+      <div ng-if="reporteDiario.length === 0" class="text-center text-gray-500 mt-6">
+        <p>No hay datos disponibles para generar el reporte.</p>
       </div>
 
-      <div ng-if="reporteData.length > 0" class="overflow-x-auto mt-4">
-        <table class="min-w-full bg-white border border-gray-200 rounded-xl">
-          <thead class="bg-gray-100 text-gray-700 uppercase text-sm font-semibold">
+      <div ng-if="reporteDiario.length > 0" class="overflow-x-auto mt-6">
+        <table class="min-w-full bg-white border border-gray-300 rounded-xl matriz">
+          <thead>
             <tr>
-              <th class="py-2 px-4 border-b text-left">Año</th>
-              <th class="py-2 px-4 border-b text-left">Mes</th>
-              <th class="py-2 px-4 border-b text-left">Estación</th>
-              <th class="py-2 px-4 border-b text-left">Total Cantidad</th>
-              <th class="py-2 px-4 border-b text-left">Total Valor</th>
+              <th rowspan="2">Fecha</th>
+              <th ng-repeat="est in estaciones" colspan="2">{{ est }}</th>
+            </tr>
+            <tr>
+              <th ng-repeat-start="est in estaciones">Total Cant</th>
+              <th ng-repeat-end>Total Valor</th>
             </tr>
           </thead>
+
           <tbody>
-            <tr ng-repeat="item in reporteData" class="hover:bg-green-50 transition">
-              <td class="py-2 px-4 border-b">{{ item.anio }}</td>
-              <td class="py-2 px-4 border-b">{{ getMonthName(item.mes) }}</td>
-              <td class="py-2 px-4 border-b">{{ item.estacionNombre }}</td>
-              <td class="py-2 px-4 border-b">{{ item.totalCantidad }}</td>
-              <td class="py-2 px-4 border-b font-semibold">${{ item.totalValor | number:2 }}</td>
+            <tr ng-repeat="fila in reporteDiario">
+              <td class="font-medium">{{ fila.fecha }}</td>
+              <td ng-repeat-start="est in estaciones">{{ fila[est].totalCantidad }}</td>
+              <td ng-repeat-end>${{ fila[est].totalValor | number:2 }}</td>
             </tr>
           </tbody>
+
+          <tfoot>
+            <tr class="bg-gray-50 font-bold">
+              <td>Total por Estación</td>
+              <td ng-repeat-start="est in estaciones">{{ totalesGlobales[est].totalCantidad | number:0 }}</td>
+              <td ng-repeat-end>${{ totalesGlobales[est].totalValor | number:2 }}</td>
+            </tr>
+            <tr class="bg-green-100 font-bold text-green-800">
+              <td>Total General</td>
+              <td colspan="{{ estaciones.length * 2 }}">
+                Cantidad Total: {{ totalGeneralCant | number:0 }} — 
+                Valor Total: ${{ totalGeneralValor | number:2 }}
+              </td>
+            </tr>
+          </tfoot>
         </table>
       </div>
-      <p ng-if="!reporteData.length && !loading" class="text-gray-500">Haz clic para generar el reporte mensual.</p>
     </section>
-
   </div>
+
 </body>
 </html>
