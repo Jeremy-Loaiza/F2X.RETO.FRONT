@@ -101,7 +101,7 @@ angular.module('RecaudosApp', [])
 
     // ==========================
     // 2️⃣ Conteo Diario + filtros + paginación
-    //     Soporta rango de horas y hora exacta
+    //     Soporta rango de horas
     // ==========================
     $scope.getConteoVehiculos = function(page = 1) {
 
@@ -166,7 +166,7 @@ angular.module('RecaudosApp', [])
                 $scope.totalPaginaValor = $scope.conteoData.reduce((s, x) => s + (x.totalValor || 0), 0);
 
                 if ($scope.conteoData.length === 0) {
-                    $scope.showMessage("info", "ℹ️ No hay datos para esos filtros.");
+                    $scope.showMessage("info", "ℹ️ No hay datos para esa fecha.");
                 }
             })
             .catch(err => {
