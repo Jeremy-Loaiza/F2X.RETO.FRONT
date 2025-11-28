@@ -1,7 +1,6 @@
 // ======================================================
 //  FRONTEND - AngularJS (v1.8)
 //  Proyecto: F2X.RETO.FRONT
-//  app.js MEJORADO (sin eliminar funcionalidades existentes)
 // ======================================================
 
 angular.module('RecaudosApp', [])
